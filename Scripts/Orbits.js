@@ -16,7 +16,7 @@ class Orbit{
         let y = OrbitPath[1];
         let z = OrbitPath[2];
 
-        let OrbitData = [({
+        let OrbitData = ({
             type: "scatter3d",
             mode: "lines",
             name: "Orbit",
@@ -26,12 +26,21 @@ class Orbit{
 
             line: {
                 width: 6,
-                color: this.Colour,
+                color: "blue",
                 //reversescale: false
             }
-        })];
+        });
 
-        return OrbitData;
+
+        // let AscendingNodeData = ({
+
+        // });
+
+        // let PeriapsisData = ({
+
+        // });
+        return [OrbitData];
+        //return [OrbitData, AscendingNodeData, PeriapsisData];
     }
 
     GetPath(){
@@ -54,15 +63,55 @@ class Orbit{
             z.push(0);
         }
         for (let i = 0; i < x.length; i++){
-            x[i] = x[i] - a*e;
+            x[i] = x[i] + a*e; //translate so origin is a focus.
         }
 
-        //transform
-        return [x, y, z];
+        let Path = this.Transform(x, y, z);
+
+        return Path;
     }
 
     Transform(x, y, z){
         //transforms orbit points into actual 3d position
+        let Omega = this.LongOfAscNode;
+        let i = this.Inclination;
+        let omega = this.ArgOfPe;
+
+        Omega = -Omega;
+        i = -i;
+        omega = -omega;
+        // console.log(Omega);
+        // console.log(i);
+        // console.log(omega);
+        
+
+        let OmegaMatrix = math.matrix([[Math.cos(Omega), Math.sin(Omega), 0], [-Math.sin(Omega), Math.cos(Omega), 0], [0, 0, 1]]);
+        let iMatrix = math.matrix([[1, 0, 0], [0, Math.cos(i), Math.sin(i)], [0, -Math.sin(i), Math.cos(i)]]);
+        let omegaMatrix = math.matrix([[Math.cos(omega), Math.sin(omega), 0], [-Math.sin(omega), Math.cos(omega), 0], [0, 0, 1]]);
+        let RotationMatrix = math.multiply(OmegaMatrix, math.multiply(iMatrix, omegaMatrix));
+        
+        RotationMatrix = math.transpose(RotationMatrix);
+        //console.log(RotationMatrix);
+        
+        let CurrentVector;
+        let ResultVector;
+        let NewX = [];
+        let NewY = []; 
+        let NewZ = [];
+
+        //console.log(math.multiply(RotationMatrix, math.matrix([[0], [1], [0]])));
+
+        for (let i = 0; i < x.length; i++){
+            CurrentVector = math.matrix([[x[i]], [y[i]], [z[i]]]);
+            ResultVector = math.multiply(RotationMatrix, CurrentVector);
+            //console.log(math.index(0));
+            //console.log(ResultVector);
+            NewX.push(ResultVector.subset(math.index(0, 0)));
+            NewY.push(ResultVector.subset(math.index(1, 0)));
+            NewZ.push(ResultVector.subset(math.index(2, 0)));
+        }
+        //console.log(NewX);
+        return [NewX, NewY, NewZ];
     }
 
     NewPlot(GraphName, GraphData, AxisLimit){
@@ -103,7 +152,7 @@ function setLayout(sometitlex, sometitley, sometitlez, AxisLimit){
 
             camera: {
                 up: {x: 0, y: 0, z: 1},//sets which way is up
-                eye: {x: 1, y: 1, z: 1}//adjust camera starting view
+                eye: {x: 1, y: -1, z: 1}//adjust camera starting view
             }
         },
     };
@@ -116,6 +165,10 @@ function GetNewInputs(){
     let i = document.getElementById("InclinationSlider").value;
     let omega = document.getElementById("ArgOfPeSlider").value;
 
+    Omega = Omega*Math.PI/180; //convert angles to "radians".
+    i = i*Math.PI/180;
+    omega = omega*Math.PI/180;
+
     let a = document.getElementById("aSlider").value;
     a = a*10**4;
     let e = document.getElementById("eSlider").value;
@@ -125,6 +178,70 @@ function GetNewInputs(){
     let PlaySpeed = document.getElementById("SpeedSlider").value;
 
     return [Omega, i , omega, a, e, Play, PlaySpeed];
+}
+
+function GetReferenceAxis(AxisLimit){
+    let AxisData = ({
+        type: "scatter3d",
+        mode: "lines",
+        name: "Reference Direction",
+        x: [0, AxisLimit],
+        y: [0, 0],
+        z: [0, 0],
+
+        line: {
+            width: 3,
+            color: "red"
+            //reversescale: false
+        }
+    });
+    return AxisData;
+}
+
+function GetCartesianAxes(AxisLimit){
+    let xAxis = ({
+        type:"scatter3d",
+        mode: "lines",
+        name: "xAxis",
+        x: [-AxisLimit, AxisLimit],
+        y: [0, 0],
+        z: [0, 0],
+
+        line:{
+            width: 3,
+            color:"red"
+        }
+    });
+
+    let yAxis = ({
+        type:"scatter3d",
+        mode: "lines",
+        name: "yAxis",
+        x: [0, 0],
+        y: [-AxisLimit, AxisLimit],
+        z: [0, 0],
+
+        line:{
+            width: 3,
+            color:"green"
+        }
+    });
+
+    let zAxis = ({
+        type:"scatter3d",
+        mode: "lines",
+        name: "zAxis",
+        x: [0, 0],
+        y: [0, 0],
+        z: [-AxisLimit, AxisLimit],
+
+        line:{
+            width: 3,
+            color:"blue"
+        }
+    });
+
+    return [xAxis, yAxis, zAxis];
 }
 
 function Main(PlotNew = false){
@@ -141,6 +258,12 @@ function Main(PlotNew = false){
     let OrbitA = new Orbit(1, Omega, i, omega, a, e);
     let OrbitPath = OrbitA.GetPath();
     let PlotData = OrbitA.GetPlotData(OrbitPath);
+
+    //PlotData.push(GetReferenceAxis(AxisLimit));
+    let AxisData = GetCartesianAxes(AxisLimit)
+    PlotData.push(AxisData[0]);
+    PlotData.push(AxisData[1]);
+    PlotData.push(AxisData[2]);
 
     if (PlotNew){
         OrbitA.NewPlot("3DGraph", PlotData, AxisLimit);
