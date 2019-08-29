@@ -11,7 +11,7 @@ class Orbit{
         //this.PlotData = this.GetPlotData();
     }
 
-    GetPlotData(OrbitPath){
+    GetPlotData(OrbitPath, AxisLimit){
         let x = OrbitPath[0];
         let y = OrbitPath[1];
         let z = OrbitPath[2];
@@ -26,20 +26,84 @@ class Orbit{
 
             line: {
                 width: 6,
-                color: "blue",
+                color: "paleblue",
                 //reversescale: false
             }
         });
 
+        let Omega = this.LongOfAscNode;
+        let i = this.Inclination;
+        let omega = this.ArgOfPe;
 
-        // let AscendingNodeData = ({
+        let OmegaMatrix = math.matrix([[Math.cos(Omega), Math.sin(Omega), 0], [-Math.sin(Omega), Math.cos(Omega), 0], [0, 0, 1]]);
+        let iMatrix = math.matrix([[1, 0, 0], [0, Math.cos(i), Math.sin(i)], [0, -Math.sin(i), Math.cos(i)]]);
+        let omegaMatrix = math.matrix([[Math.cos(omega), Math.sin(omega), 0], [-Math.sin(omega), Math.cos(omega), 0], [0, 0, 1]]);
 
-        // });
+        OmegaMatrix = math.transpose(OmegaMatrix);
+        iMatrix = math.transpose(iMatrix);
+        omegaMatrix = math.transpose(omegaMatrix);
 
+
+        let Node1 = [[-AxisLimit], [0], [0]];
+        let Node2 = [[AxisLimit], [0], [0]];
+        
+        Node1 = math.multiply(OmegaMatrix, Node1);
+        Node2 = math.multiply(OmegaMatrix, Node2);
+
+        //console.log(ANode1);
+
+        let AscendingNodeData = ({
+            type: "scatter3d",
+            mode: "lines",
+            name: "ANode",
+            x: [Node1.subset(math.index(0,0)), Node2.subset(math.index(0,0))],
+            y: [Node1.subset(math.index(1,0)), Node2.subset(math.index(1,0))],
+            z: [Node1.subset(math.index(2,0)), Node2.subset(math.index(2,0))],
+
+            //ResultVector.subset(math.index(0, 0))
+
+            line: {
+                width: 6,
+                color: "yellow",
+                //reversescale: false
+            }
+        });
+
+        Node1 = [[-AxisLimit], [0], [0]];
+        Node2 = [[AxisLimit], [0], [0]];
+
+        Node1 = math.multiply(omegaMatrix, Node1);
+        Node2 = math.multiply(omegaMatrix, Node2);
+
+        Node1 = math.multiply(iMatrix, Node1);
+        Node2 = math.multiply(iMatrix, Node2);
+
+        Node1 = math.multiply(OmegaMatrix, Node1);
+        Node2 = math.multiply(OmegaMatrix, Node2);
+        
+
+        let PeriapsisData = ({
+            type: "scatter3d",
+            mode: "lines",
+            name: "Pe",
+            x: [Node1.subset(math.index(0,0)), Node2.subset(math.index(0,0))],
+            y: [Node1.subset(math.index(1,0)), Node2.subset(math.index(1,0))],
+            z: [Node1.subset(math.index(2,0)), Node2.subset(math.index(2,0))],
+
+            //ResultVector.subset(math.index(0, 0))
+
+            line: {
+                width: 6,
+                color: "blue",
+                //reversescale: false
+            }
+        });
+        //IT'S ALL BROKEN ... SOMETHING TO DO WITH THE TRANSPOSING?
+        
         // let PeriapsisData = ({
 
         // });
-        return [OrbitData];
+        return [OrbitData, AscendingNodeData, PeriapsisData];
         //return [OrbitData, AscendingNodeData, PeriapsisData];
     }
 
@@ -63,7 +127,7 @@ class Orbit{
             z.push(0);
         }
         for (let i = 0; i < x.length; i++){
-            x[i] = x[i] + a*e; //translate so origin is a focus.
+            x[i] = x[i] - a*e; //translate so origin is a focus.
         }
 
         let Path = this.Transform(x, y, z);
@@ -77,21 +141,19 @@ class Orbit{
         let i = this.Inclination;
         let omega = this.ArgOfPe;
 
-        Omega = -Omega;
-        i = -i;
-        omega = -omega;
-        // console.log(Omega);
-        // console.log(i);
-        // console.log(omega);
+        // Omega = -Omega;
+        // i = -i;
+        // omega = -omega;
+        
         
 
         let OmegaMatrix = math.matrix([[Math.cos(Omega), Math.sin(Omega), 0], [-Math.sin(Omega), Math.cos(Omega), 0], [0, 0, 1]]);
         let iMatrix = math.matrix([[1, 0, 0], [0, Math.cos(i), Math.sin(i)], [0, -Math.sin(i), Math.cos(i)]]);
         let omegaMatrix = math.matrix([[Math.cos(omega), Math.sin(omega), 0], [-Math.sin(omega), Math.cos(omega), 0], [0, 0, 1]]);
-        let RotationMatrix = math.multiply(OmegaMatrix, math.multiply(iMatrix, omegaMatrix));
+
+        let RotationMatrix = math.multiply(omegaMatrix, math.multiply(iMatrix, OmegaMatrix));
         
         RotationMatrix = math.transpose(RotationMatrix);
-        //console.log(RotationMatrix);
         
         let CurrentVector;
         let ResultVector;
@@ -99,18 +161,15 @@ class Orbit{
         let NewY = []; 
         let NewZ = [];
 
-        //console.log(math.multiply(RotationMatrix, math.matrix([[0], [1], [0]])));
 
         for (let i = 0; i < x.length; i++){
             CurrentVector = math.matrix([[x[i]], [y[i]], [z[i]]]);
             ResultVector = math.multiply(RotationMatrix, CurrentVector);
-            //console.log(math.index(0));
-            //console.log(ResultVector);
+
             NewX.push(ResultVector.subset(math.index(0, 0)));
             NewY.push(ResultVector.subset(math.index(1, 0)));
             NewZ.push(ResultVector.subset(math.index(2, 0)));
         }
-        //console.log(NewX);
         return [NewX, NewY, NewZ];
     }
 
@@ -137,13 +196,14 @@ function setLayout(sometitlex, sometitley, sometitlez, AxisLimit){
         },
         dragmode: 'turntable',
         scene: {
+            
             aspectmode: "cube",
             // xaxis: {range: [-0.05, 0.05], title: sometitlex},//, showticklabels: false},
             // yaxis: {range: [-0.01, 0.01], title: sometitley},//, showticklabels: false},
             // zaxis: {range: [-0.01, 0.01], title: sometitlez},//, showticklabels: false},
-            xaxis: {range: [-AxisLimit, AxisLimit], title: sometitlex},//, showticklabels: false},
-            yaxis: {range: [-AxisLimit, AxisLimit], title: sometitley},//, showticklabels: false},
-            zaxis: {range: [-AxisLimit, AxisLimit], title: sometitlez},//, showticklabels: false},
+            xaxis: {range: [-AxisLimit, AxisLimit], title: sometitlex, showbackground: true, backgroundcolor: "black"},//, showticklabels: false},
+            yaxis: {range: [-AxisLimit, AxisLimit], title: sometitley, showbackground: true, backgroundcolor: "black"},//, showticklabels: false},
+            zaxis: {range: [-AxisLimit, AxisLimit], title: sometitlez, showbackground: true, backgroundcolor: "black"},//, showticklabels: false},
             
             //aspectmode: "manual",
             aspectratio: {
@@ -152,7 +212,7 @@ function setLayout(sometitlex, sometitley, sometitlez, AxisLimit){
 
             camera: {
                 up: {x: 0, y: 0, z: 1},//sets which way is up
-                eye: {x: 1, y: -1, z: 1}//adjust camera starting view
+                eye: {x: 1, y: 1, z: 1}//adjust camera starting view
             }
         },
     };
@@ -257,13 +317,13 @@ function Main(PlotNew = false){
 
     let OrbitA = new Orbit(1, Omega, i, omega, a, e);
     let OrbitPath = OrbitA.GetPath();
-    let PlotData = OrbitA.GetPlotData(OrbitPath);
+    let PlotData = OrbitA.GetPlotData(OrbitPath, AxisLimit);
 
-    //PlotData.push(GetReferenceAxis(AxisLimit));
-    let AxisData = GetCartesianAxes(AxisLimit)
-    PlotData.push(AxisData[0]);
-    PlotData.push(AxisData[1]);
-    PlotData.push(AxisData[2]);
+    PlotData.push(GetReferenceAxis(AxisLimit));
+    // let AxisData = GetCartesianAxes(AxisLimit);
+    // PlotData.push(AxisData[0]);
+    // PlotData.push(AxisData[1]);
+    // PlotData.push(AxisData[2]);
 
     if (PlotNew){
         OrbitA.NewPlot("3DGraph", PlotData, AxisLimit);
