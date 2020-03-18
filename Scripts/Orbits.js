@@ -183,6 +183,83 @@ class Orbit{
     }
 }
 
+class Angle{
+    constructor(Origin, AxisVector, RefVecOne, Angle, Detail){//RefVecTwo){
+        this.Origin = Origin;
+        this.AxisVector = AxisVector;
+        this.RefVecOne = RefVecOne;
+        //this.RefVecTwo = RefVecTwo;//not sure if we need this -- could just replace with an angle 
+        this.Angle = Angle;
+        this.Detail = Detail; //the higher the detail, the more triangles make up the resultant sector thingy
+    }
+    GetAngleData(){
+        let LittleAngle = this.Angle/this.Detail;
+        let R = GetRotationMatrix(u, LittleAngle);
+
+        let PointsList = [];
+        PointsList.push([]);
+
+        FirstPoint = Origin + math.multiply(R, this.RefVecOne);
+        SecondPoint = Origin + math.multiply(R, First);
+        
+        CurrentVector = []
+        for (let i = 0; i < this.Detail; i++){
+            CurrentVector = math.multiply(R, CurrentVector);
+            PointsList.push
+        }
+
+        let AngleData = ({
+            type: "mesh3d",
+
+            x: [this.Origin[0],],
+            y: [this.Origin[1],],
+            z: [this.Origin[2],]
+        });
+    }
+}
+class Triangle{
+    constructor(A, B, C){
+        this.PointA = A;
+        this.PointB = B;
+        this.PointC = C;
+    }
+    GetTriangleData(){
+        let TriangleData = ({
+            type: "mesh3d",
+            //mode: "lines",
+            x:  [this.PointA[0], this.PointB[0], this.PointC[0]],
+            y:  [this.PointA[1], this.PointB[1], this.PointC[1]],
+            z:  [this.PointA[2], this.PointB[2], this.PointC[2]],
+
+
+        });
+
+        return TriangleData;
+    }
+}
+
+function GetRotationMatrix(u, Theta){
+    //u must be a unit vector - could deal with that here - yeah lets deal with that here.
+    //theta is the angle anticlockwise in a right hand sense by which to rotate by
+    let Magu = ((u[0]**2 + u[1]**2 + u[2]**2)**0.5);
+    if (Magu != 1){
+        //Need to turn u into a unit vector 
+        for (i = 0; i < u.length; i++){
+            u[i] = u[i]/Magu;
+        }
+    }
+
+    //may need to transpose u initially... ok I think I dealt with that.
+    
+    
+    let CPMatrix = math.matrix([[0, -u[2], u[1]], [u[2], 0, -u[0]], [-u[1], u[0], 0]]);//indexing here may be broken
+    u = math.matrix([[u[0]], [u[1]], [u[2]]]);
+    let uOuterProduct = math.multiply(u, math.transpose(u));
+
+    let R = math.cos(Theta)*math.identity(3) + math.sin(Theta)*CPMatrix + (1 - math.cos(Theta))*(uOuterProduct);
+    return R;
+}
+
 
 function setLayout(sometitlex, sometitley, sometitlez, AxisLimit){
     //set layout of graphs. 
@@ -320,6 +397,10 @@ function Main(PlotNew = false){
     let PlotData = OrbitA.GetPlotData(OrbitPath, AxisLimit);
 
     PlotData.push(GetReferenceAxis(AxisLimit));
+
+    let TriangleOne = new Triangle([0, 0, 0], [20000, 20000, 20000], [-10000, 20000, -40000]);
+    let TriangleData = TriangleOne.GetTriangleData();
+    PlotData.push(TriangleData);
     // let AxisData = GetCartesianAxes(AxisLimit);
     // PlotData.push(AxisData[0]);
     // PlotData.push(AxisData[1]);
