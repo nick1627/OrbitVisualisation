@@ -278,9 +278,9 @@ function setLayout(sometitlex, sometitley, sometitlez, AxisLimit){
             // xaxis: {range: [-0.05, 0.05], title: sometitlex},//, showticklabels: false},
             // yaxis: {range: [-0.01, 0.01], title: sometitley},//, showticklabels: false},
             // zaxis: {range: [-0.01, 0.01], title: sometitlez},//, showticklabels: false},
-            xaxis: {range: [-AxisLimit, AxisLimit], title: sometitlex, showbackground: true, backgroundcolor: "black"},//, showticklabels: false},
-            yaxis: {range: [-AxisLimit, AxisLimit], title: sometitley, showbackground: true, backgroundcolor: "black"},//, showticklabels: false},
-            zaxis: {range: [-AxisLimit, AxisLimit], title: sometitlez, showbackground: true, backgroundcolor: "black"},//, showticklabels: false},
+            xaxis: {range: [-AxisLimit, AxisLimit], title: sometitlex, showbackground: true, showgrid: false, backgroundcolor: "black"},//, showticklabels: false},
+            yaxis: {range: [-AxisLimit, AxisLimit], title: sometitley, showbackground: true, showgrid: false, backgroundcolor: "black"},//, showticklabels: false},
+            zaxis: {range: [-AxisLimit, AxisLimit], title: sometitlez, showbackground: true, showgrid: false, backgroundcolor: "black"},//, showticklabels: false},
             
             //aspectmode: "manual",
             aspectratio: {
